@@ -1,7 +1,7 @@
 Chaurjahari Hospital, Rukum West
 Karnali Province, Nepal
 
-This program by me and Paediatric Consultant Dr. Dhiraj Mahara for use in Paediatric OPD.
+This program was made by me and Paediatric Consultant Dr. Dhiraj Mahara for use in Paediatric OPD.
 Primary purpose of the program was:
 
 a. Identify and manage cases of malnutrition
