@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os
 import datetime
-
-#import local data
+global viewlist
+viewlist=[]
 data=pd.read_excel('data.xlsx')
 data.fillna('',inplace=True)
+oldd=data.copy(deep=True)
 
-#import who growth charts
+print(data)
+
 wfl=pd.read_excel('data/boyswfl.xlsx',index_col='Length')
 wfl2=pd.read_excel('data/girlwfl.xlsx',index_col='Length')
 wfa=pd.read_excel('data/boyswfa.xlsx',index_col='Day')
@@ -18,15 +20,11 @@ wfa2=pd.read_excel('data/girlwfa.xlsx',index_col='Day')
 lfa=pd.read_excel('data/boyslfa.xlsx',index_col='Day')
 lfa2=pd.read_excel('data/girllfa.xlsx',index_col='Day')
 
-#organise for male female, type of charts, and x,y axes of respective charts
 lidata=[[wfl,wfa,lfa],[wfl2,wfa2,lfa2],['Height/Length for Age','Weight for Age','Weight for length'],[['length','weight'],['Age (months)','weight'],['Age (months)','length']]]
-#organise for gender
 madata={'M':[wfl,wfa,lfa],'F':[wfl2,wfa2,lfa2]}
-
 matplotlib.use("svg")
 
-
-def colorstatus(status):#this function colorcodes the excel data that is to be saved
+def colorstatus(status):
     val=['Height/Length for Age','Weight for Age','Weight for length']
     y=['background-color: #ffffff','background-color: #ffffff','background-color: #ffffff']
     for i in range(len(val)):
@@ -47,7 +45,7 @@ def colorstatus(status):#this function colorcodes the excel data that is to be s
 
 
 
-def zscore(df,ind):# the df.iloc[ind] zscore is calculated and appended to the dataframe, use in the table display 
+def zscore(df,ind):
        cnt=0
        cal={}
        for i in lidata[2]:
@@ -109,7 +107,7 @@ def zscore(df,ind):# the df.iloc[ind] zscore is calculated and appended to the d
         return(cal)
        
 
-class topbarmdm(ft.UserControl): #the search/save/add menu on top
+class topbarmdm(ft.UserControl):
     def __init__(self,page):
         super().__init__()
         self.page=page
@@ -124,27 +122,37 @@ class topbarmdm(ft.UserControl): #the search/save/add menu on top
         e.page.snack_bar=ft.SnackBar(content=ft.Text('File saved'))
         e.page.snack_bar.open = True
         e.page.update()
-    def adddata(self,e): #add now name,address and other data
+    def adddata(self,e):
         global data
         ind=[data.index.values.max()+1]
         emp={}
-        nemdm=data['SN'].max()+1
+        nemdm=oldd['SN'].max()+1
         for i in data.columns:
             emp[i]=''
             if i =='SN':
                 emp['SN']=nemdm
             if i=='Gender':
                 emp[i]='M'
+            
+
+                
+        data=oldd.copy(deep=True)
         frame=pd.DataFrame(data=emp,index=ind)
         data=pd.concat([data,frame],axis=0)
         print(data)
         print(ind[0])
+        le=len(e.page.controls)
+        for i in range(1,le):
+            e.page.remove(e.page.controls[le-i])
+            e.page.update()
+        e.page.add(ft.Container(height=100))
         e.page.add(profile(mdmid=nemdm))
+        
+
         e.page.snack_bar=ft.SnackBar(content=ft.Text('Added'))
         e.page.snack_bar.open = True
         e.page.update()
-
-    def nameaction(self,e): #search for names
+    def nameaction(self,e):
         print('sub')
         name=e.control.value.upper()
         print(name)
@@ -167,8 +175,7 @@ class topbarmdm(ft.UserControl): #the search/save/add menu on top
             self.page.add(profile(mdmid=i))
             self.page.update()
         self.page.update()
-
-    def mdmaction(self,e):#search for ID
+    def mdmaction(self,e):
         print('sub')
         name=int(e.control.value)
         localdata=data.loc[data['SN']==name]
@@ -187,7 +194,7 @@ class topbarmdm(ft.UserControl): #the search/save/add menu on top
         self.view=ft.Container(content=ft.Row([self.ids,self.name,self.save,self.add]),bgcolor=ft.colors.BLACK,height=100)
         return self.view
     
-class zscore_display(ft.UserControl): #ft.Text but color coded for zscores
+class zscore_display(ft.UserControl):
     def __init__(self,zscore):
         super().__init__()
         self.zscore=zscore
@@ -203,7 +210,7 @@ class zscore_display(ft.UserControl): #ft.Text but color coded for zscores
             return ft.Text(self.zscore,bgcolor=ft.colors.RED_300,weight=30)
         return ft.Text(self.zscore)
     
-class graph(ft.UserControl): #show graph lidata[gender][type] dataz= redings displayed as scatter points 
+class graph(ft.UserControl):
     def __init__(self,type,dataz,gender):
         self.type=type
         self.dataz=dataz.copy(deep=True)
@@ -236,21 +243,24 @@ class graph(ft.UserControl): #show graph lidata[gender][type] dataz= redings dis
         ax.grid()
         return MatplotlibChart(fig)
     
-class profile(ft.UserControl): # profile of each entry
+class profile(ft.UserControl):
     def __init__(self,mdmid):
         self.mdmid=mdmid
         super().__init__()
     def close_dialog(self,e):
          self.diag.open=False
 
-    def show_graph(self,e): #open the graph
-         t=e.control.data
-         x=data.loc[data['SN']==self.mdmid]
-         print(x)
-         x=x.iloc[0]['Gender']
-         print(x)
-         self.diag=ft.AlertDialog(content=graph(type=t,dataz=self.biodata,gender=x),actions=[ft.IconButton(icon=ft.icons.CLOSE,on_click=self.close_dialog)])
-         e.page.show_dialog(self.diag)
+    def show_graph(self,e):
+        try:
+            t=e.control.data
+            x=data.loc[data['SN']==self.mdmid]
+            print(x)
+            x=x.iloc[0]['Gender']
+            print(x)
+            self.diag=ft.AlertDialog(content=graph(type=t,dataz=self.biodata,gender=x),actions=[ft.IconButton(icon=ft.icons.CLOSE,on_click=self.close_dialog)])
+            e.page.show_dialog(self.diag)
+        except:
+            pass
     def build(self): 
         global data
         unique=data["SN"].unique()
@@ -269,9 +279,10 @@ class profile(ft.UserControl): # profile of each entry
             self.buttons=ft.Row(self.buttons)
             return(ft.Container(ft.Column([ft.Row([self.sn,self.name,self.gender,self.address,self.phone]),self.biodatacol,self.buttons
                               ],),border=ft.Border(bottom=ft.BorderSide(color='black',width=4))))
-    def save(self,e): #if name/address is edited it is updated in main df (data)
+    def save(self,e):
         global data
         print(self.mdmid)
+        oldd=data.copy(deep=True)
         data['Name'].where((data['SN']!=self.mdmid),self.name.value,inplace=True)
         data['Address'].where((data['SN']!=self.mdmid),self.address.value,inplace=True)
         data['phone number'].where((data['SN']!=self.mdmid),self.phone.value,inplace=True)
@@ -279,7 +290,7 @@ class profile(ft.UserControl): # profile of each entry
         print(data)
 
 
-class measuementable(ft.UserControl): #table to show measurements, mdmid= id of data to be displayed
+class measuementable(ft.UserControl):
         def __init__(self,df,mdmid):
             super().__init__()
             self.df=df
@@ -291,14 +302,14 @@ class measuementable(ft.UserControl): #table to show measurements, mdmid= id of 
             x=data.loc[data['SN']==self.mdmid].copy(deep=True)
             x=x[0:1]
             print(x)
-            if self.adddate.value in data.loc[data['SN']==self.mdmid]['Date'].tolist(): #duplicate date=update the old data with new
+            if self.adddate.value in data.loc[data['SN']==self.mdmid]['Date'].tolist():
                 try:
                     data['Age (months)'].where((data['SN']!=self.mdmid)&(data['Date']!=self.adddate.value),int(self.addage.value),inplace=True)
                     data['length'].where((data['SN']!=self.mdmid)&(data['Date']!=self.adddate.value),int(self.addlength.value),inplace=True)
                     data['weight'].where((data['SN']!=self.mdmid)&(data['Date']!=self.adddate.value),int(self.addweight.value),inplace=True)
                 except:
                     return ''
-            elif '' in data.loc[data['SN']==self.mdmid]['Date'].tolist(): #new entry (added profile)
+            elif '' in data.loc[data['SN']==self.mdmid]['Date'].tolist():
                 try:
                     data['Age (months)'].where((data['SN']!=self.mdmid)&(data['Date']!=''),int(self.addage.value),inplace=True)
                     data['length'].where((data['SN']!=self.mdmid)&(data['Date']!=''),int(self.addlength.value),inplace=True)
@@ -306,7 +317,7 @@ class measuementable(ft.UserControl): #table to show measurements, mdmid= id of 
                     data['Date'].where((data['SN']!=self.mdmid)&(data['Date']!=''),self.adddate.value,inplace=True)
                 except:
                     return ""
-            else:#old entry, new measurements in new date
+            else:
                 try:
                     x['weight']=int(self.addweight.value)
                     x['length']=int(self.addlength.value)
@@ -318,11 +329,11 @@ class measuementable(ft.UserControl): #table to show measurements, mdmid= id of 
                     return ''
             print(data)
             self.update()
-            zscore(data,data.index[len(data.index.values)-1]) #update the zscore
+            zscore(data,data.index[len(data.index.values)-1])
             if True:
                 for i in e.page.controls:
                     if isinstance(i,profile):
-                        if i.mdmid==self.mdmid:#update in page 
+                        if i.mdmid==self.mdmid:
                             ind=e.page.controls.index(i)
                             e.page.remove(i)
                             e.page.insert(ind,profile(mdmid=self.mdmid))
@@ -360,6 +371,12 @@ def main(page: ft.Page):
     #for i in data["SN"].unique():
     #    page.add(profile(mdmid=i))
     
+
+    
+    page.update()
+
+ft.app(target=main)
+
 
     
     page.update()
